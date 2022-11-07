@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::bail;
 use clap::Parser;
 use fs_err::File;
 use itertools::Itertools;
@@ -54,23 +54,32 @@ impl WordEntry {
 
 fn parse_udtaleordbog(path: impl Into<PathBuf>) -> anyhow::Result<Vec<WordEntry>> {
     let mut count = 0;
+    let mut res = vec![];
     for (s, i) in BufReader::new(File::open(path)?)
         .lines()
         .zip(1usize..)
         .skip(6)
     {
-        if let Err(e) = WordEntry::from_line(&s?) {
-            // .with_context(|| format!("At line {i}")) {}
-            println!("Line {i:>4}: {e}");
-            count += 1;
+        match WordEntry::from_line(&s?) {
+            Ok(word) => res.push(word),
+            Err(e) => {
+                // .with_context(|| format!("At line {i}")) {}
+                println!("Error at line {i:>4}: {e}");
+                count += 1;
+            }
         }
     }
-    bail!("uoaaa {count}");
+    if count > 0 {
+        bail!("{count} errors found, aborting.");
+    } else {
+        Ok(res)
+    }
 }
 
 fn strip_both(s: &str, c: char) -> anyhow::Result<&str> {
-    s.strip_prefix(c)
-        .with_context(|| anyhow!("{s:?} does not start with {c:?}"))?
-        .strip_suffix(c)
-        .with_context(|| anyhow!("{s:?} does not end with {c:?}"))
+    Ok(s.strip_prefix(c).unwrap_or(s).strip_suffix(c).unwrap_or(s))
+    // s.strip_prefix(c)
+    //     .with_context(|| anyhow!("{s:?} does not start with {c:?}"))?
+    //     .strip_suffix(c)
+    //     .with_context(|| anyhow!("{s:?} does not end with {c:?}"))
 }
