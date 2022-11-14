@@ -1,6 +1,6 @@
 use std::{
     io::{BufRead, BufReader},
-    path::PathBuf,
+    path::PathBuf, collections::BTreeSet,
 };
 
 use anyhow::bail;
@@ -15,8 +15,12 @@ struct Opts {
 
 fn main() -> anyhow::Result<()> {
     let opts = Opts::parse();
-    let res = parse_udtaleordbog(opts.udtaleordbog_path);
-    println!("{:?}", res);
+    let res = parse_udtaleordbog(opts.udtaleordbog_path)?;
+
+    let phones = res.iter().flat_map(|x| &x.syllables).flatten().collect::<BTreeSet<_>>();
+    for phone in phones {
+        println!("{:?}", phone);
+    }
 
     Ok(())
 }
